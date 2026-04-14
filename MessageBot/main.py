@@ -1,0 +1,105 @@
+# (* Message Chat Bot *)
+import pyautogui
+import time
+import pyperclip
+import re
+from groq import Groq
+
+API_KEY = "your_api_key"
+
+client = Groq(api_key=API_KEY)
+
+conversation = [
+    {"role": "system", "content": (
+        "You are [User], a fun, mischievous, and caring friend. "
+        "You text like a real friend chatting on WhatsApp: casual, playful, a little flirty sometimes, "
+        "use emojis naturally 😄😉🥰, and make the conversation feel lively and human. "
+        "use the emojis sometimes but not in every sentence. "
+        "You understand Bengali, Hindi, and English. "
+        "When replying in Bengali or Hindi, always write in English letters (Banglish/Hinglish). "
+        "Use short, friendly, and natural sentences. "
+        "Never repeat the user's messages. "
+        "Ignore timestamps, sender names, parentheses, or quotes. "
+        "Always reply like Subham would reply to a friend, like you are texting someone you really know well."
+    )}
+]
+
+
+def get_whatsapp_text():
+    pyautogui.moveTo(690, 278)
+    pyautogui.dragTo(1779, 929, duration=2, button='left')
+    time.sleep(0.3)
+    pyautogui.hotkey("ctrl", "c")
+    time.sleep(0.3)
+    return pyperclip.paste().strip()
+
+
+def clean_chat_text(text):
+    lines = text.split("\n")
+    clean_lines = [re.sub(r"^\[.*?\]\s*.*?:\s*", "", line) for line in lines]
+    return "\n".join(clean_lines)
+
+
+def get_ai_reply(chat):
+    conversation.append({"role": "user", "content": chat})
+    
+
+    system_msg = conversation[0]
+    recent_msgs = conversation[-6:]
+    trimmed_conversation = [system_msg] + recent_msgs
+
+    try:
+        response = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=trimmed_conversation,
+            temperature=1,
+            max_completion_tokens=512,  
+            top_p=1,
+            reasoning_effort="medium",
+            stream=False,
+            stop=None
+        )
+        ai_reply = response.choices[0].message.content.strip()
+        conversation.append({"role": "assistant", "content": ai_reply})
+        return ai_reply
+    except Exception as e:
+        print("Error:", e)
+        return "failed to respond "
+
+
+def send_reply_whatsapp(reply):
+    pyperclip.copy(reply)
+    pyautogui.click(876, 967)
+    time.sleep(0.2)
+    pyautogui.hotkey("ctrl", "v")
+    time.sleep(0.2)
+    pyautogui.press("enter")
+    print("reply sent!")
+
+
+time.sleep(2)
+pyautogui.click(1218, 1046)
+time.sleep(1)
+
+last_message = ""
+
+while True:
+    try:
+        copied_text = get_whatsapp_text()
+        clean_chat = clean_chat_text(copied_text)
+
+        if clean_chat and clean_chat != last_message:
+            last_message = clean_chat
+            print("New message detected:\n", clean_chat)
+            ai_reply = get_ai_reply(clean_chat)
+            print("\nAI Reply:\n", ai_reply)
+            send_reply_whatsapp(ai_reply)
+
+        else:
+            print("No new message detected.")
+
+        time.sleep(5)
+
+    except Exception as e:
+        print("Error:", e)
+        time.sleep(5)

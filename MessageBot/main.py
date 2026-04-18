@@ -5,10 +5,12 @@ import pyperclip
 import re
 from groq import Groq
 
+# add api key in .env file
 API_KEY = "your_api_key"
 
 client = Groq(api_key=API_KEY)
 
+# personality of AI
 conversation = [
     {"role": "system", "content": (
         "You are [User], a fun, mischievous, and caring friend. "
@@ -24,7 +26,7 @@ conversation = [
     )}
 ]
 
-
+# getting the message
 def get_whatsapp_text():
     pyautogui.moveTo(690, 278)
     pyautogui.dragTo(1779, 929, duration=2, button='left')
@@ -39,7 +41,7 @@ def clean_chat_text(text):
     clean_lines = [re.sub(r"^\[.*?\]\s*.*?:\s*", "", line) for line in lines]
     return "\n".join(clean_lines)
 
-
+# generating AI reply
 def get_ai_reply(chat):
     conversation.append({"role": "user", "content": chat})
     
@@ -66,7 +68,7 @@ def get_ai_reply(chat):
         print("Error:", e)
         return "failed to respond "
 
-
+# sending back reply
 def send_reply_whatsapp(reply):
     pyperclip.copy(reply)
     pyautogui.click(876, 967)
@@ -83,6 +85,7 @@ time.sleep(1)
 
 last_message = ""
 
+# checking message continuously
 while True:
     try:
         copied_text = get_whatsapp_text()
